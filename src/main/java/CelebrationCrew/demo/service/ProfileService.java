@@ -137,7 +137,7 @@ public class ProfileService {
     }
 
     private String formatDate(LocalDate date) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd");
         return date.format(formatter);
     }
 }

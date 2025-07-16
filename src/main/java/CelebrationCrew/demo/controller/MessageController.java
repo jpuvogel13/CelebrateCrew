@@ -146,17 +146,18 @@ public class MessageController {
 
             // Check if message already exists for this combination
             if (messageService.messageExists(sender, receiver, eventType, eventDateTime)) {
-                response.put("success", false);
-                response.put("error", "Message already saved for this event");
-                return ResponseEntity.badRequest().body(response);
+                // Update existing message
+                messageService.updateExistingMessage(sender, receiver, messageText, eventType, eventDateTime);
+                response.put("success", true);
+                response.put("message", "Message updated successfully");
+                return ResponseEntity.ok(response);
+            } else {
+                // Save new message
+                messageService.saveMessage(sender, receiver, messageText, eventType, eventDateTime);
+                response.put("success", true);
+                response.put("message", "Message saved successfully");
+                return ResponseEntity.ok(response);
             }
-
-            // Save message
-            messageService.saveMessage(sender, receiver, messageText, eventType, eventDateTime);
-
-            response.put("success", true);
-            response.put("message", "Message saved successfully");
-            return ResponseEntity.ok(response);
 
         } catch (Exception e) {
             response.put("success", false);
