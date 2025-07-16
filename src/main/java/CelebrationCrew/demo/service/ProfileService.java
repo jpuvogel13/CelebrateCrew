@@ -25,7 +25,10 @@ public class ProfileService {
 
     public List<Map<String, String>> getUpcomingBirthdays() {
         try {
-            String sql = "SELECT first_name, last_name, birth_date FROM profiles WHERE birth_date IS NOT NULL";
+            String sql = "SELECT p.first_name, p.last_name, p.birth_date, u.email " +
+                    "FROM profiles p " +
+                    "JOIN users u ON p.user_id = u.id " +
+                    "WHERE p.birth_date IS NOT NULL AND u.status = 'ACTIVE'";
             List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
 
             List<Map<String, String>> result = new ArrayList<>();
@@ -37,16 +40,18 @@ public class ProfileService {
             for (Map<String, Object> row : rows) {
                 String firstName = (String) row.get("first_name");
                 String lastName = (String) row.get("last_name");
+                String email = (String) row.get("email");
                 java.sql.Date sqlDate = (java.sql.Date) row.get("birth_date");
 
                 if (sqlDate != null) {
                     LocalDate birthDate = sqlDate.toLocalDate();
-                    System.out.println("Profile: " + firstName + " " + lastName + " - Birth: " + birthDate);
+                    System.out.println("Profile: " + firstName + " " + lastName + " - Birth: " + birthDate + " - Email: " + email);
 
                     if (isUpcomingEvent(birthDate)) {
                         System.out.println("MATCH! Adding birthday for: " + firstName);
                         Map<String, String> birthday = new HashMap<>();
                         birthday.put("name", firstName + " " + lastName);
+                        birthday.put("email", email);
                         birthday.put("date", formatDate(birthDate));
                         result.add(birthday);
                     }
@@ -65,7 +70,10 @@ public class ProfileService {
 
     public List<Map<String, String>> getUpcomingAnniversaries() {
         try {
-            String sql = "SELECT first_name, last_name, joining_date FROM profiles WHERE joining_date IS NOT NULL";
+            String sql = "SELECT p.first_name, p.last_name, p.joining_date, u.email " +
+                    "FROM profiles p " +
+                    "JOIN users u ON p.user_id = u.id " +
+                    "WHERE p.joining_date IS NOT NULL AND u.status = 'ACTIVE'";
             List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
 
             List<Map<String, String>> result = new ArrayList<>();
@@ -77,16 +85,18 @@ public class ProfileService {
             for (Map<String, Object> row : rows) {
                 String firstName = (String) row.get("first_name");
                 String lastName = (String) row.get("last_name");
+                String email = (String) row.get("email");
                 java.sql.Date sqlDate = (java.sql.Date) row.get("joining_date");
 
                 if (sqlDate != null) {
                     LocalDate joiningDate = sqlDate.toLocalDate();
-                    System.out.println("Profile: " + firstName + " " + lastName + " - Joining: " + joiningDate);
+                    System.out.println("Profile: " + firstName + " " + lastName + " - Joining: " + joiningDate + " - Email: " + email);
 
                     if (isUpcomingEvent(joiningDate)) {
                         System.out.println("MATCH! Adding anniversary for: " + firstName);
                         Map<String, String> anniversary = new HashMap<>();
                         anniversary.put("name", firstName + " " + lastName);
+                        anniversary.put("email", email);
                         anniversary.put("date", formatDate(joiningDate));
                         result.add(anniversary);
                     }

@@ -26,6 +26,8 @@
 
         .message-btn { background: #007bff; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
         .message-btn:hover { background: #0056b3; }
+        .message-btn.saved { background: #28a745; }
+        .message-btn.saved:hover { background: #218838; }
 
         .no-events { text-align: center; color: #666; font-style: italic; padding: 20px; }
 
@@ -33,7 +35,6 @@
         .pagination button { border: 1px solid #ddd; background: white; padding: 8px 12px; cursor: pointer; }
         .pagination button.active { background: #007bff; color: white; border-color: #007bff; }
         .pagination button:hover:not(.active) { background: #f8f9fa; }
-
 
         .result-area { margin-top: 15px; padding: 15px; border-radius: 4px; display: none; }
         .result-success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
@@ -56,9 +57,9 @@
         .char-counter { font-size: 12px; color: #666; text-align: right; margin-top: 5px; }
         .char-counter.warning { color: #e74c3c; }
         .btn-modal { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; }
-        .btn-send { background: #28a745; color: white; }
-        .btn-send:hover { background: #218838; }
-        .btn-send:disabled { background: #6c757d; cursor: not-allowed; }
+        .btn-save { background: #28a745; color: white; }
+        .btn-save:hover { background: #218838; }
+        .btn-save:disabled { background: #6c757d; cursor: not-allowed; }
         .btn-cancel { background: #6c757d; color: white; margin-right: 10px; }
         .btn-cancel:hover { background: #545b62; }
     </style>
@@ -66,7 +67,7 @@
 <body>
 <div class="header">
     <div>
-        <h1>Birthday Notification</h1>
+        <h1>Event Celebrations</h1>
         <div class="nav">
             <a href="dashboard.html" class="nav-link active">Dashboard</a>
             <a href="profile.html" class="nav-link">Profile</a>
@@ -101,15 +102,13 @@
             </div>
         </div>
     </div>
-
-
 </div>
 
 <!-- Message Modal -->
 <div id="messageModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Send Personalized Message</h3>
+            <h3>Save Personalized Message</h3>
             <span class="close" id="closeModal">&times;</span>
         </div>
         <div class="modal-body">
@@ -136,14 +135,14 @@
                     </div>
                 </div>
 
-                <input type="hidden" id="recipientEmail">
+                <input type="hidden" id="receiverEmail">
                 <input type="hidden" id="eventType">
                 <input type="hidden" id="eventDate">
             </form>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn-modal btn-cancel" id="cancelMessage">Cancel</button>
-            <button type="submit" class="btn-modal btn-send" id="sendMessage">Send Message</button>
+            <button type="submit" class="btn-modal btn-save" id="saveMessage">Save Message</button>
         </div>
     </div>
 </div>
@@ -152,6 +151,7 @@
     const ITEMS_PER_PAGE = 10;
     let allEventsData = [];
     let currentPage = 1;
+    let savedMessages = new Set(); // Track saved messages
 
     // Check if user is logged in
     fetch('/user')
@@ -248,14 +248,21 @@
         const endIndex = startIndex + ITEMS_PER_PAGE;
         const pageData = allEventsData.slice(startIndex, endIndex);
 
-        tbody.innerHTML = pageData.map(event => `
-            <tr>
-                <td>${event.name}</td>
-                <td><span class="event-badge ${event.type.toLowerCase() === 'birthday' ? 'badge-birthday' : 'badge-anniversary'}">${event.type}</span></td>
-                <td>${event.date}</td>
-                <td><button class="message-btn" onclick="sendMessage('${event.name}', '${event.type.toLowerCase()}', '${event.date}', '${event.email}')">Message</button></td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = pageData.map(event => {
+            const messageKey = `${event.email}-${event.eventType}-${event.date}`;
+            const isSaved = savedMessages.has(messageKey);
+            const btnClass = isSaved ? 'message-btn saved' : 'message-btn';
+            const btnText = isSaved ? 'Message Added' : 'Message';
+
+            return `
+                <tr>
+                    <td>${event.name}</td>
+                    <td><span class="event-badge ${event.type.toLowerCase() === 'birthday' ? 'badge-birthday' : 'badge-anniversary'}">${event.type}</span></td>
+                    <td>${event.date}</td>
+                    <td><button class="${btnClass}" onclick="saveMessage('${event.name}', '${event.type.toLowerCase()}', '${event.date}', '${event.email}')">${btnText}</button></td>
+                </tr>
+            `;
+        }).join('');
 
         renderPagination(allEventsData.length, currentPage, pagination, (page) => {
             currentPage = page;
@@ -300,18 +307,18 @@
         renderEvents();
     }
 
-    function sendMessage(name, type, date, email) {
+    function saveMessage(name, type, date, email) {
         const modal = document.getElementById('messageModal');
         const recipientName = document.getElementById('recipientName');
         const eventInfo = document.getElementById('eventInfo');
-        const recipientEmail = document.getElementById('recipientEmail');
+        const receiverEmail = document.getElementById('receiverEmail');
         const eventType = document.getElementById('eventType');
         const eventDate = document.getElementById('eventDate');
         const messageText = document.getElementById('messageText');
 
         // Set recipient info
         recipientName.value = name;
-        recipientEmail.value = email;
+        receiverEmail.value = email;
         eventType.value = type.toUpperCase();
         eventDate.value = convertDateFormat(date);
         eventInfo.value = `${type.charAt(0).toUpperCase() + type.slice(1)} on ${date}`;
@@ -370,19 +377,31 @@
         document.getElementById('messageModal').style.display = 'none';
     };
 
-    document.getElementById('sendMessage').onclick = function() {
+    document.getElementById('saveMessage').onclick = function() {
+        const messageText = document.getElementById('messageText').value.trim();
+
+        if (messageText.length === 0) {
+            showModalAlert('error', 'Please enter a message');
+            return;
+        }
+
+        if (messageText.length > 100) {
+            showModalAlert('error', 'Message must be 100 characters or less');
+            return;
+        }
+
         const formData = new FormData();
-        formData.append('receiverEmail', document.getElementById('recipientEmail').value);
-        formData.append('messageText', document.getElementById('messageText').value);
+        formData.append('receiverEmail', document.getElementById('receiverEmail').value);
+        formData.append('messageText', messageText);
         formData.append('eventType', document.getElementById('eventType').value);
         formData.append('eventDate', document.getElementById('eventDate').value);
 
-        const sendBtn = this;
-        sendBtn.disabled = true;
-        sendBtn.textContent = 'Sending...';
+        const saveBtn = this;
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
         hideModalAlert();
 
-        fetch('/api/send-message', {
+        fetch('/api/save-message', {
             method: 'POST',
             body: formData
         })
@@ -390,21 +409,33 @@
             .then(data => {
                 if (data.success) {
                     showModalAlert('success', data.message);
+
+                    // Mark as saved - use original date format to match renderEvents
+                    const receiverEmail = document.getElementById('receiverEmail').value;
+                    const eventType = document.getElementById('eventType').value;
+                    const originalDate = document.querySelector('#eventInfo').value.match(/on (\d{2}\/\d{2})/)[1];
+                    const messageKey = `${receiverEmail}-${eventType}-${originalDate}`;
+                    savedMessages.add(messageKey);
+
+                    // Clear form
                     document.getElementById('messageText').value = '';
                     updateCharCount();
+
+                    // Close modal after delay
                     setTimeout(() => {
                         document.getElementById('messageModal').style.display = 'none';
-                    }, 2000);
+                        renderEvents(); // Refresh to show updated button
+                    }, 1500);
                 } else {
-                    showModalAlert('error', data.error || 'Error sending message');
+                    showModalAlert('error', data.error || 'Error saving message');
                 }
             })
             .catch(error => {
                 showModalAlert('error', 'Error: ' + error.message);
             })
             .finally(() => {
-                sendBtn.disabled = false;
-                sendBtn.textContent = 'Send Message';
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save Message';
             });
     };
 
@@ -415,8 +446,6 @@
             modal.style.display = 'none';
         }
     };
-
-
 
     // Logout
     document.getElementById('logoutBtn').onclick = function() {
