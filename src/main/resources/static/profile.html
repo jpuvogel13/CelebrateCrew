@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Profile - Birthday Notification</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
+        .header { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .nav { display: flex; gap: 20px; }
+        .nav-link { color: #666; text-decoration: none; padding: 8px 16px; border-radius: 4px; }
+        .nav-link.active { background: #007bff; color: white; }
+        .content { background: white; padding: 30px; border-radius: 8px; max-width: 800px; }
+        .logout-btn { background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+
+        .profile-form { max-width: 600px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+        .form-group input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; box-sizing: border-box; }
+        .form-group input:focus { outline: none; border-color: #007bff; box-shadow: 0 0 0 2px rgba(0,123,255,0.25); }
+
+        .form-row { display: flex; gap: 20px; }
+        .form-row .form-group { flex: 1; }
+
+        .btn { padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-secondary { background: #6c757d; color: white; margin-left: 10px; }
+        .btn-secondary:hover { background: #545b62; }
+
+        .alert { padding: 15px; border-radius: 4px; margin-bottom: 20px; display: none; }
+        .alert-success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .alert-error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+
+        .loading { display: none; color: #666; }
+
+        .profile-header { margin-bottom: 30px; }
+        .profile-header h2 { color: #333; margin-bottom: 10px; }
+        .profile-header p { color: #666; }
+
+        .form-help { font-size: 14px; color: #666; margin-top: 5px; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <div>
+        <h1>🎂 Birthday Notification</h1>
+        <div class="nav">
+            <a href="/dashboard.html" class="nav-link">Dashboard</a>
+            <a href="#" class="nav-link active">Profile</a>
+        </div>
+    </div>
+    <div>
+        <span id="userEmail">Loading...</span>
+        <button id="logoutBtn" class="logout-btn">Logout</button>
+    </div>
+</div>
+
+<div class="content">
+    <div class="profile-header">
+        <h2>My Profile</h2>
+        <p>Update your personal information to ensure your celebrations are accurate and timely.</p>
+    </div>
+
+    <div id="alertMessage" class="alert">
+        <span id="alertText"></span>
+    </div>
+
+    <form id="profileForm" class="profile-form">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="firstName">First Name *</label>
+                <input type="text" id="firstName" name="firstName" required>
+            </div>
+            <div class="form-group">
+                <label for="lastName">Last Name *</label>
+                <input type="text" id="lastName" name="lastName" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email" readonly style="background: #f8f9fa; color: #666;">
+            <div class="form-help">Email cannot be changed. Contact support if needed.</div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="birthDate">Birth Date</label>
+                <input type="date" id="birthDate" name="birthDate">
+                <div class="form-help">Used for birthday notifications</div>
+            </div>
+            <div class="form-group">
+                <label for="joiningDate">Joining Date</label>
+                <input type="date" id="joiningDate" name="joiningDate">
+                <div class="form-help">Used for work anniversary notifications</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 30px;">
+            <button type="submit" class="btn btn-primary" id="saveBtn">
+                Save Changes
+            </button>
+            <button type="button" class="btn btn-secondary" id="cancelBtn">
+                Cancel
+            </button>
+            <span id="loading" class="loading">Saving...</span>
+        </div>
+    </form>
+</div>
+
+<script>
+    let originalData = {};
+
+    // Check if user is logged in and load profile
+    fetch('/user')
+        .then(response => {
+            if (response.ok) {
+                return response.text();
+            } else {
+                window.location.href = '/login.html';
+            }
+        })
+        .then(email => {
+            document.getElementById('userEmail').textContent = email;
+            loadProfile();
+        });
+
+    function loadProfile() {
+        fetch('/api/profile')
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showAlert('error', 'Error loading profile: ' + data.error);
+                    return;
+                }
+
+                // Populate form
+                document.getElementById('firstName').value = data.firstName || '';
+                document.getElementById('lastName').value = data.lastName || '';
+                document.getElementById('email').value = data.email || '';
+                document.getElementById('birthDate').value = data.birthDate || '';
+                document.getElementById('joiningDate').value = data.joiningDate || '';
+
+                // Store original data for cancel functionality
+                originalData = {
+                    firstName: data.firstName || '',
+                    lastName: data.lastName || '',
+                    birthDate: data.birthDate || '',
+                    joiningDate: data.joiningDate || ''
+                };
+            })
+            .catch(error => {
+                showAlert('error', 'Error loading profile: ' + error.message);
+            });
+    }
+
+    // Handle form submission
+    document.getElementById('profileForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const saveBtn = document.getElementById('saveBtn');
+        const loading = document.getElementById('loading');
+
+        // Show loading state
+        saveBtn.disabled = true;
+        loading.style.display = 'inline';
+        hideAlert();
+
+        // Get form data
+        const formData = new FormData();
+        formData.append('firstName', document.getElementById('firstName').value.trim());
+        formData.append('lastName', document.getElementById('lastName').value.trim());
+        formData.append('birthDate', document.getElementById('birthDate').value);
+        formData.append('joiningDate', document.getElementById('joiningDate').value);
+
+        // Submit update
+        fetch('/api/profile', {
+            method: 'PUT',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', data.message);
+                    // Update original data
+                    originalData = {
+                        firstName: document.getElementById('firstName').value.trim(),
+                        lastName: document.getElementById('lastName').value.trim(),
+                        birthDate: document.getElementById('birthDate').value,
+                        joiningDate: document.getElementById('joiningDate').value
+                    };
+                } else {
+                    showAlert('error', data.error || 'Error updating profile');
+                }
+            })
+            .catch(error => {
+                showAlert('error', 'Error updating profile: ' + error.message);
+            })
+            .finally(() => {
+                saveBtn.disabled = false;
+                loading.style.display = 'none';
+            });
+    });
+
+    // Handle cancel button
+    document.getElementById('cancelBtn').addEventListener('click', function() {
+        // Restore original values
+        document.getElementById('firstName').value = originalData.firstName;
+        document.getElementById('lastName').value = originalData.lastName;
+        document.getElementById('birthDate').value = originalData.birthDate;
+        document.getElementById('joiningDate').value = originalData.joiningDate;
+
+        hideAlert();
+    });
+
+    function showAlert(type, message) {
+        const alertDiv = document.getElementById('alertMessage');
+        const alertText = document.getElementById('alertText');
+
+        alertDiv.className = 'alert alert-' + type;
+        alertText.textContent = message;
+        alertDiv.style.display = 'block';
+
+        // Auto-hide success messages after 3 seconds
+        if (type === 'success') {
+            setTimeout(() => {
+                hideAlert();
+            }, 3000);
+        }
+    }
+
+    function hideAlert() {
+        document.getElementById('alertMessage').style.display = 'none';
+    }
+
+    // Logout functionality
+    document.getElementById('logoutBtn').onclick = function() {
+        fetch('/logout', { method: 'POST' })
+            .then(() => {
+                window.location.href = '/login.html';
+            });
+    };
+</script>
+</body>
+</html>

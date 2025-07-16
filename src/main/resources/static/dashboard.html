@@ -1,102 +1,430 @@
-<!-- celebration_dashboard.html -->
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Celebration Crew Dashboard</title>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
-        .header { background: white; padding: 20px; border-radius: 5px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .logout-btn { background: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
-        .content { background: white; padding: 20px; border-radius: 5px; }
-        .table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-        .table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        .table th { background: #f8f9fa; font-weight: bold; }
-        .table tr:hover { background: #f8f9fa; }
-        .section { margin-bottom: 40px; }
-        .section h3 { margin-bottom: 15px; color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        .header { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .nav { display: flex; gap: 20px; }
+        .nav-link { color: #666; text-decoration: none; padding: 8px 16px; border-radius: 4px; }
+        .nav-link.active { background: #007bff; color: white; }
+        .content { background: white; padding: 30px; border-radius: 8px; }
+        .logout-btn { background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+
+        .events-container { margin-top: 30px; }
+        .events-section h3 { margin-bottom: 20px; color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+
+        .events-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .events-table th, .events-table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        .events-table th { background: #f8f9fa; font-weight: bold; }
+        .events-table tr:hover { background: #f8f9fa; }
+
+        .event-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .badge-birthday { background: #e3f2fd; color: #1976d2; }
+        .badge-anniversary { background: #f3e5f5; color: #7b1fa2; }
+
+        .message-btn { background: #007bff; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .message-btn:hover { background: #0056b3; }
+
+        .no-events { text-align: center; color: #666; font-style: italic; padding: 20px; }
+
+        .pagination { display: flex; justify-content: center; gap: 5px; margin-top: 15px; }
+        .pagination button { border: 1px solid #ddd; background: white; padding: 8px 12px; cursor: pointer; }
+        .pagination button.active { background: #007bff; color: white; border-color: #007bff; }
+        .pagination button:hover:not(.active) { background: #f8f9fa; }
+
+
+        .result-area { margin-top: 15px; padding: 15px; border-radius: 4px; display: none; }
+        .result-success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .result-error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .result-info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+
+        /* Message Modal Styles */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: white; margin: 10% auto; padding: 0; border-radius: 8px; width: 90%; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .modal-header { padding: 20px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { margin: 0; color: #333; }
+        .modal-body { padding: 20px; }
+        .modal-footer { padding: 20px; border-top: 1px solid #ddd; text-align: right; }
+        .close { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover { color: #000; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        .form-group textarea { height: 80px; resize: vertical; }
+        .char-counter { font-size: 12px; color: #666; text-align: right; margin-top: 5px; }
+        .char-counter.warning { color: #e74c3c; }
+        .btn-modal { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; }
+        .btn-send { background: #28a745; color: white; }
+        .btn-send:hover { background: #218838; }
+        .btn-send:disabled { background: #6c757d; cursor: not-allowed; }
+        .btn-cancel { background: #6c757d; color: white; margin-right: 10px; }
+        .btn-cancel:hover { background: #545b62; }
     </style>
 </head>
 <body>
 <div class="header">
-    <h1>Celebration Crew Dashboard</h1>
     <div>
-        <span id="userEmail">admin@celebrationcrew.com</span>
-        <button class="logout-btn" onclick="logout()">Logout</button>
+        <h1>Birthday Notification</h1>
+        <div class="nav">
+            <a href="dashboard.html" class="nav-link active">Dashboard</a>
+            <a href="profile.html" class="nav-link">Profile</a>
+        </div>
+    </div>
+    <div>
+        <span id="userEmail">Loading...</span>
+        <button id="logoutBtn" class="logout-btn">Logout</button>
     </div>
 </div>
 
 <div class="content">
-    <div class="section">
-        <h3>Upcoming Celebrations</h3>
-        <table class="table">
-            <thead>
-            <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Event</th>
-                <th>Date</th>
-                <th>Days Until</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr>
-                <td>Lisa Davis</td>
-                <td>lisa.davis@celebrationcrew.com</td>
-                <td>7 Years Anniversary</td>
-                <td>July 16, 2018</td>
-                <td>Today</td>
-            </tr>
-            <tr>
-                <td>Sarah Johnson</td>
-                <td>hr@celebrationcrew.com</td>
-                <td>Birthday</td>
-                <td>July 17</td>
-                <td>1 day</td>
-            </tr>
-            <tr>
-                <td>Mike Thompson</td>
-                <td>manager@celebrationcrew.com</td>
-                <td>Birthday</td>
-                <td>July 18</td>
-                <td>2 days</td>
-            </tr>
-            <tr>
-                <td>Robert Miller</td>
-                <td>robert.miller@celebrationcrew.com</td>
-                <td>6 Years Anniversary</td>
-                <td>July 17, 2019</td>
-                <td>1 day</td>
-            </tr>
-            <tr>
-                <td>Jane Smith</td>
-                <td>jane.smith@celebrationcrew.com</td>
-                <td>Birthday</td>
-                <td>July 19</td>
-                <td>3 days</td>
-            </tr>
-            <tr>
-                <td>Jennifer Taylor</td>
-                <td>jennifer.taylor@celebrationcrew.com</td>
-                <td>5 Years Anniversary</td>
-                <td>July 18, 2020</td>
-                <td>2 days</td>
-            </tr>
-            <tr>
-                <td>David Wilson</td>
-                <td>john.doe@celebrationcrew.com</td>
-                <td>Birthday</td>
-                <td>July 20</td>
-                <td>4 days</td>
-            </tr>
-            </tbody>
-        </table>
+    <h2>Upcoming Events (Next 7 Days)</h2>
+
+    <div class="events-container">
+        <div class="events-section">
+            <table class="events-table" id="eventsTable">
+                <thead>
+                <tr>
+                    <th>NAME</th>
+                    <th>TYPE</th>
+                    <th>DATE</th>
+                    <th>ACTION</th>
+                </tr>
+                </thead>
+                <tbody id="eventsBody">
+                <!-- Data will be loaded here -->
+                </tbody>
+            </table>
+            <div class="pagination" id="eventsPagination">
+                <!-- Pagination will be added here -->
+            </div>
+        </div>
+    </div>
+
+
+</div>
+
+<!-- Message Modal -->
+<div id="messageModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Send Personalized Message</h3>
+            <span class="close" id="closeModal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="modalAlert" class="result-area">
+                <p id="modalAlertText"></p>
+            </div>
+
+            <form id="messageForm">
+                <div class="form-group">
+                    <label>To:</label>
+                    <input type="text" id="recipientName" readonly style="background: #f8f9fa;">
+                </div>
+
+                <div class="form-group">
+                    <label>Event:</label>
+                    <input type="text" id="eventInfo" readonly style="background: #f8f9fa;">
+                </div>
+
+                <div class="form-group">
+                    <label for="messageText">Your Message:</label>
+                    <textarea id="messageText" placeholder="Write a thoughtful message..." maxlength="100" required></textarea>
+                    <div class="char-counter">
+                        <span id="charCount">0</span>/100 characters
+                    </div>
+                </div>
+
+                <input type="hidden" id="recipientEmail">
+                <input type="hidden" id="eventType">
+                <input type="hidden" id="eventDate">
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-modal btn-cancel" id="cancelMessage">Cancel</button>
+            <button type="submit" class="btn-modal btn-send" id="sendMessage">Send Message</button>
+        </div>
     </div>
 </div>
 
 <script>
-    function logout() {
-        window.location.href = '/login.html';
+    const ITEMS_PER_PAGE = 10;
+    let allEventsData = [];
+    let currentPage = 1;
+
+    // Check if user is logged in
+    fetch('/user')
+        .then(response => {
+            if (response.ok) {
+                return response.text();
+            } else {
+                window.location.href = '/login.html';
+            }
+        })
+        .then(email => {
+            document.getElementById('userEmail').textContent = email;
+            loadUpcomingEvents();
+        })
+        .catch(error => {
+            console.error('Error checking user:', error);
+            window.location.href = '/login.html';
+        });
+
+    // Load upcoming events
+    function loadUpcomingEvents() {
+        fetch('/api/upcoming-events')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch events');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Combine birthdays and anniversaries into one array
+                allEventsData = [];
+
+                // Add birthdays
+                if (data.birthdays && data.birthdays.length > 0) {
+                    data.birthdays.forEach(birthday => {
+                        allEventsData.push({
+                            name: birthday.name,
+                            type: 'Birthday',
+                            date: birthday.date,
+                            email: birthday.email,
+                            eventType: 'BIRTHDAY'
+                        });
+                    });
+                }
+
+                // Add anniversaries
+                if (data.anniversaries && data.anniversaries.length > 0) {
+                    data.anniversaries.forEach(anniversary => {
+                        allEventsData.push({
+                            name: anniversary.name,
+                            type: 'Anniversary',
+                            date: anniversary.date,
+                            email: anniversary.email,
+                            eventType: 'ANNIVERSARY'
+                        });
+                    });
+                }
+
+                // Sort by date
+                allEventsData.sort((a, b) => {
+                    const dateA = parseDate(a.date);
+                    const dateB = parseDate(b.date);
+                    return dateA - dateB;
+                });
+
+                renderEvents();
+            })
+            .catch(error => {
+                console.error('Error loading events:', error);
+                // Show empty state
+                document.getElementById('eventsBody').innerHTML = '<tr><td colspan="4" class="no-events">Error loading events. Please try again.</td></tr>';
+                document.getElementById('eventsPagination').innerHTML = '';
+            });
     }
+
+    function parseDate(dateStr) {
+        // Parse date in format "dd/MM" and assume current year
+        const [day, month] = dateStr.split('/').map(Number);
+        const currentYear = new Date().getFullYear();
+        return new Date(currentYear, month - 1, day);
+    }
+
+    function renderEvents() {
+        const tbody = document.getElementById('eventsBody');
+        const pagination = document.getElementById('eventsPagination');
+
+        if (allEventsData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="no-events">No upcoming events in the next 7 days</td></tr>';
+            pagination.innerHTML = '';
+            return;
+        }
+
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        const pageData = allEventsData.slice(startIndex, endIndex);
+
+        tbody.innerHTML = pageData.map(event => `
+            <tr>
+                <td>${event.name}</td>
+                <td><span class="event-badge ${event.type.toLowerCase() === 'birthday' ? 'badge-birthday' : 'badge-anniversary'}">${event.type}</span></td>
+                <td>${event.date}</td>
+                <td><button class="message-btn" onclick="sendMessage('${event.name}', '${event.type.toLowerCase()}', '${event.date}', '${event.email}')">Message</button></td>
+            </tr>
+        `).join('');
+
+        renderPagination(allEventsData.length, currentPage, pagination, (page) => {
+            currentPage = page;
+            renderEvents();
+        });
+    }
+
+    function renderPagination(totalItems, currentPage, container, onPageChange) {
+        const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+
+        if (totalPages <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+
+        let paginationHTML = '';
+
+        // Previous button
+        if (currentPage > 1) {
+            paginationHTML += `<button onclick="changePage(${currentPage - 1})">Previous</button>`;
+        }
+
+        // Page numbers
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === currentPage || i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                paginationHTML += `<button class="${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+            } else if (i === currentPage - 3 || i === currentPage + 3) {
+                paginationHTML += `<span>...</span>`;
+            }
+        }
+
+        // Next button
+        if (currentPage < totalPages) {
+            paginationHTML += `<button onclick="changePage(${currentPage + 1})">Next</button>`;
+        }
+
+        container.innerHTML = paginationHTML;
+    }
+
+    function changePage(page) {
+        currentPage = page;
+        renderEvents();
+    }
+
+    function sendMessage(name, type, date, email) {
+        const modal = document.getElementById('messageModal');
+        const recipientName = document.getElementById('recipientName');
+        const eventInfo = document.getElementById('eventInfo');
+        const recipientEmail = document.getElementById('recipientEmail');
+        const eventType = document.getElementById('eventType');
+        const eventDate = document.getElementById('eventDate');
+        const messageText = document.getElementById('messageText');
+
+        // Set recipient info
+        recipientName.value = name;
+        recipientEmail.value = email;
+        eventType.value = type.toUpperCase();
+        eventDate.value = convertDateFormat(date);
+        eventInfo.value = `${type.charAt(0).toUpperCase() + type.slice(1)} on ${date}`;
+
+        // Clear previous message and show modal
+        messageText.value = '';
+        updateCharCount();
+        hideModalAlert();
+        modal.style.display = 'block';
+    }
+
+    function convertDateFormat(dateStr) {
+        // Convert from "dd/MM" to "YYYY-MM-DD"
+        if (!dateStr) return '';
+        const [day, month] = dateStr.split('/');
+        const currentYear = new Date().getFullYear();
+        return `${currentYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+
+    function updateCharCount() {
+        const messageText = document.getElementById('messageText');
+        const charCount = document.getElementById('charCount');
+        const counter = document.querySelector('.char-counter');
+
+        const length = messageText.value.length;
+        charCount.textContent = length;
+
+        if (length > 80) {
+            counter.classList.add('warning');
+        } else {
+            counter.classList.remove('warning');
+        }
+    }
+
+    function showModalAlert(type, message) {
+        const alertDiv = document.getElementById('modalAlert');
+        const alertText = document.getElementById('modalAlertText');
+
+        alertDiv.className = 'result-area result-' + type;
+        alertText.textContent = message;
+        alertDiv.style.display = 'block';
+    }
+
+    function hideModalAlert() {
+        document.getElementById('modalAlert').style.display = 'none';
+    }
+
+    // Modal event listeners
+    document.getElementById('messageText').addEventListener('input', updateCharCount);
+
+    document.getElementById('closeModal').onclick = function() {
+        document.getElementById('messageModal').style.display = 'none';
+    };
+
+    document.getElementById('cancelMessage').onclick = function() {
+        document.getElementById('messageModal').style.display = 'none';
+    };
+
+    document.getElementById('sendMessage').onclick = function() {
+        const formData = new FormData();
+        formData.append('receiverEmail', document.getElementById('recipientEmail').value);
+        formData.append('messageText', document.getElementById('messageText').value);
+        formData.append('eventType', document.getElementById('eventType').value);
+        formData.append('eventDate', document.getElementById('eventDate').value);
+
+        const sendBtn = this;
+        sendBtn.disabled = true;
+        sendBtn.textContent = 'Sending...';
+        hideModalAlert();
+
+        fetch('/api/send-message', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showModalAlert('success', data.message);
+                    document.getElementById('messageText').value = '';
+                    updateCharCount();
+                    setTimeout(() => {
+                        document.getElementById('messageModal').style.display = 'none';
+                    }, 2000);
+                } else {
+                    showModalAlert('error', data.error || 'Error sending message');
+                }
+            })
+            .catch(error => {
+                showModalAlert('error', 'Error: ' + error.message);
+            })
+            .finally(() => {
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send Message';
+            });
+    };
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('messageModal');
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    };
+
+
+
+    // Logout
+    document.getElementById('logoutBtn').onclick = function() {
+        fetch('/logout', { method: 'POST' })
+            .then(() => {
+                window.location.href = '/login.html';
+            });
+    };
 </script>
 </body>
 </html>
