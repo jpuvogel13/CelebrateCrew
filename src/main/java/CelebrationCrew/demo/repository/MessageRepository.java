@@ -60,6 +60,9 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     @Query("SELECT m FROM Message m WHERE m.eventDate BETWEEN :startDate AND :endDate ORDER BY m.eventDate ASC")
     List<Message> findMessagesInDateRange(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 
+
+    @Query("Select m from Message m where m.receiver = :receiver AND m.eventType =:eventType")
+    List<Message> findByReceiver(@Param("receiver") User receiver, @Param("eventType") String eventType);
     /**
      * Find messages by sender for specific event date and type
      */

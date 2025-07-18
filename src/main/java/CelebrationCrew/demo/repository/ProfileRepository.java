@@ -30,4 +30,13 @@ public interface ProfileRepository extends JpaRepository<Profile, Long> {
             "FUNCTION('MONTH', p.joiningDate) <= FUNCTION('MONTH', :endDate)")
     List<Profile> findUpcomingAnniversaries(@Param("startDate") LocalDate startDate,
                                             @Param("endDate") LocalDate endDate);
+
+
+
+    @Query("SELECT p FROM Profile p WHERE p.joiningDate = :todayDate")
+    List<Profile> findProfilesByJoiningDateBetween(@Param("todayDate") LocalDate todayDate);
+
+
+    @Query("SELECT p FROM Profile p WHERE p.birthDate = :todayDate")
+    List<Profile> findProfilesByBirthdateBetween(@Param("todayDate") LocalDate todayDate);
 }
