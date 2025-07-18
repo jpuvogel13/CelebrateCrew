@@ -164,12 +164,39 @@
         })
         .then(email => {
             document.getElementById('userEmail').textContent = email;
-            loadUpcomingEvents();
+            loadSavedMessages().then(() => {
+                loadUpcomingEvents();
+            });
         })
         .catch(error => {
             console.error('Error checking user:', error);
             window.location.href = '/login.html';
         });
+
+    // Load saved messages to track button states
+    function loadSavedMessages() {
+        return fetch('/api/user-messages')
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                return { success: false };
+            })
+            .then(data => {
+                if (data.success && data.messages) {
+                    data.messages.forEach(message => {
+                        // Convert eventDate back to MM/dd format for matching
+                        const eventDate = new Date(message.eventDate);
+                        const dateStr = `${(eventDate.getMonth() + 1).toString().padStart(2, '0')}/${eventDate.getDate().toString().padStart(2, '0')}`;
+                        const messageKey = `${message.receiverEmail}-${message.eventType}-${dateStr}`;
+                        savedMessages.add(messageKey);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading saved messages:', error);
+            });
+    }
 
     // Load upcoming events
     function loadUpcomingEvents() {
@@ -228,8 +255,8 @@
     }
 
     function parseDate(dateStr) {
-        // Parse date in format "dd/MM" and assume current year
-        const [day, month] = dateStr.split('/').map(Number);
+        // Parse date in format "MM/dd" and assume current year
+        const [month, day] = dateStr.split('/').map(Number);
         const currentYear = new Date().getFullYear();
         return new Date(currentYear, month - 1, day);
     }
@@ -307,6 +334,7 @@
         renderEvents();
     }
 
+    // FIND saveMessage function and REPLACE it with:
     function saveMessage(name, type, date, email) {
         const modal = document.getElementById('messageModal');
         const recipientName = document.getElementById('recipientName');
@@ -323,17 +351,38 @@
         eventDate.value = convertDateFormat(date);
         eventInfo.value = `${type.charAt(0).toUpperCase() + type.slice(1)} on ${date}`;
 
-        // Clear previous message and show modal
-        messageText.value = '';
+        // Check if message already exists and pre-fill it
+        const messageKey = `${email}-${type.toUpperCase()}-${date}`;
+        if (savedMessages.has(messageKey)) {
+            // Load existing message
+            fetch('/api/user-messages')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.messages) {
+                        const existingMessage = data.messages.find(msg => {
+                            const msgDate = new Date(msg.eventDate);
+                            const msgDateStr = `${(msgDate.getMonth() + 1).toString().padStart(2, '0')}/${msgDate.getDate().toString().padStart(2, '0')}`;
+                            return msg.receiverEmail === email && msg.eventType === type.toUpperCase() && msgDateStr === date;
+                        });
+                        if (existingMessage) {
+                            messageText.value = existingMessage.messageText;
+                            updateCharCount();
+                        }
+                    }
+                });
+        } else {
+            messageText.value = '';
+        }
+
         updateCharCount();
         hideModalAlert();
         modal.style.display = 'block';
     }
 
     function convertDateFormat(dateStr) {
-        // Convert from "dd/MM" to "YYYY-MM-DD"
+        // Convert from "MM/dd" to "YYYY-MM-DD"
         if (!dateStr) return '';
-        const [day, month] = dateStr.split('/');
+        const [month, day] = dateStr.split('/');
         const currentYear = new Date().getFullYear();
         return `${currentYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
     }
@@ -397,8 +446,10 @@
         formData.append('eventDate', document.getElementById('eventDate').value);
 
         const saveBtn = this;
+        const isUpdate = document.querySelector('.modal-header h3').textContent.includes('Edit');
         saveBtn.disabled = true;
-        saveBtn.textContent = 'Saving...';
+        saveBtn.textContent = isUpdate ? 'Updating...' : 'Saving...';
+
         hideModalAlert();
 
         fetch('/api/save-message', {
@@ -435,7 +486,7 @@
             })
             .finally(() => {
                 saveBtn.disabled = false;
-                saveBtn.textContent = 'Save Message';
+                saveBtn.textContent = isUpdate ? 'Update Message' : 'Save Message';
             });
     };
 

@@ -33,6 +33,27 @@ public class MessageService {
     }
 
     /**
+     * Update existing message text for specific event
+     */
+    public Message updateExistingMessage(User sender, User receiver, String messageText, String eventType, LocalDateTime eventDate) {
+        // Use existing method to find messages by sender, event type and date
+        List<Message> candidateMessages = messageRepository.findBySenderAndEventTypeAndEventDate(sender, eventType, eventDate);
+
+        // Filter by receiver
+        Message existingMessage = candidateMessages.stream()
+                .filter(msg -> msg.getReceiver().equals(receiver))
+                .findFirst()
+                .orElse(null);
+
+        if (existingMessage != null) {
+            existingMessage.setMessageText(messageText.trim());
+            existingMessage.setSentAt(LocalDateTime.now()); // Update timestamp
+            return messageRepository.save(existingMessage);
+        }
+        return null;
+    }
+
+    /**
      * Check if a message already exists for the given combination
      */
     public boolean messageExists(User sender, User receiver, String eventType, LocalDateTime eventDate) {
